@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Two Covers — A Restaurant Ledger",
+  title: "Two Covers",
   description: "A restaurant ranking, kept by two.",
 };
 
@@ -14,6 +14,10 @@ export default function RootLayout({ children }) {
         <link
           href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500;1,9..144,600&family=Jost:wght@300;400;500&display=swap"
           rel="stylesheet"
+        />
+        <link
+          rel="stylesheet"
+          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         />
       </head>
       <body>{children}</body>
