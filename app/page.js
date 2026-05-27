@@ -110,7 +110,7 @@ function ListView({ data, onOpen }) {
   const sorted = [...data].sort((a, b) =>
     (b.visit_date || "").localeCompare(a.visit_date || ""));
   if (!data.length)
-    return <Empty msg={"No visits recorded. Tap the + button to begin the ledger."} />;
+    return <Empty msg={"No visits recorded. Tap the + button to begin the record."} />;
   return (
     <div>
       <p style={S.lede}>
@@ -226,11 +226,11 @@ function MapView({ data, onOpen }) {
 
 function TrendView({ data }) {
   if (!data.length)
-    return <Empty msg="Findings emerge once the ledger holds entries." />;
+    return <Empty msg="Findings emerge once there's something to study." />;
 
   return (
     <div>
-      <p style={S.lede}>The ledger, read closely.</p>
+      <p style={S.lede}>The record, read closely.</p>
       <RecordsSection data={data} />
       <CategorySection data={data} />
       <ScatterSection data={data} />
@@ -264,7 +264,7 @@ function RecordsSection({ data }) {
     toughest && { label: "Toughest Category", value: toughest.label, sub: `${fmt(toughest.avg)} avg` },
     kindest && { label: "Most Generous", value: kindest.label, sub: `${fmt(kindest.avg)} avg` },
     mostRecent && { label: "Most Recent", value: mostRecent.name, sub: prettyDate(mostRecent.visit_date) },
-    { label: "Establishments", value: String(data.length), sub: "on the ledger" },
+    { label: "Establishments", value: String(data.length), sub: "in the record" },
   ].filter(Boolean);
 
   return (
