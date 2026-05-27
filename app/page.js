@@ -2,14 +2,14 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { CATEGORIES, totalOf, fmt, fmtScore, prettyDate } from "../lib/data";
 import { S } from "../lib/styles";
-import { ScoreBadge, Empty, EntryFormModal, DetailModal } from "../lib/components";
+import { ScoreBadge, Empty, EntryFormModal, DetailModal, RestaurantMap } from "../lib/components";
 
 export default function Home() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("list");
   const [detail, setDetail] = useState(null);
-  const [formMode, setFormMode] = useState(null); // null | "new" | entryObject
+  const [formMode, setFormMode] = useState(null);
 
   async function load() {
     try {
@@ -26,7 +26,6 @@ export default function Home() {
   const TABS = {
     list: "The Visits", ranks: "The Ranking", map: "The Places", trends: "The Findings",
   };
-  const sectionNo = { list: "I", ranks: "II", map: "III", trends: "IV" }[tab];
 
   function afterSave() {
     setFormMode(null);
@@ -42,23 +41,13 @@ export default function Home() {
         <div style={S.masthead}>TWO COVERS</div>
         <div style={S.mastRule} />
         <div style={S.initials}>A.E.B. &nbsp;&middot;&nbsp; R.E.P.</div>
-        <div style={S.subhead}>
-          <span>A Restaurant Ledger</span>
-          <span style={S.dot}>&middot;</span>
-          <span style={S.italic}>Kept by Two</span>
-        </div>
       </header>
 
       <main style={S.main}>
         <div style={S.pageTitleRow}>
           <div style={S.pageTitleLeft}>
-            <span style={S.pageKicker}>Section {sectionNo}</span>
             <h1 style={S.pageTitle}>{TABS[tab]}</h1>
           </div>
-          <button onClick={() => setFormMode("new")} style={S.recordBtn} className="record">
-            <span style={{ fontSize: 16 }}>+</span>
-            <span>Record a Visit</span>
-          </button>
         </div>
 
         {loading ? (
@@ -121,7 +110,7 @@ function ListView({ data, onOpen }) {
   const sorted = [...data].sort((a, b) =>
     (b.visit_date || "").localeCompare(a.visit_date || ""));
   if (!data.length)
-    return <Empty msg={"No visits recorded. Press \u201cRecord a Visit\u201d to begin the ledger."} />;
+    return <Empty msg={"No visits recorded. Tap the + button to begin the ledger."} />;
   return (
     <div>
       <p style={S.lede}>
@@ -150,7 +139,6 @@ function ListView({ data, onOpen }) {
   );
 }
 
-const ROMAN = ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV"];
 function RankView({ data, onOpen }) {
   if (!data.length)
     return <Empty msg="A ranking requires entries. None yet recorded." />;
@@ -160,7 +148,7 @@ function RankView({ data, onOpen }) {
       <p style={S.lede}>Every establishment, ordered by total standing.</p>
       {ranked.map((e, i) => (
         <button key={e.id} onClick={() => onOpen(e)} style={S.rankRow} className="entry">
-          <div style={S.rankNum}>{ROMAN[i] || i + 1}</div>
+          <div style={S.rankNum}>{i + 1}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={S.cardName}>{e.name}</div>
             <div style={S.cardMeta}>{e.city}</div>
@@ -179,15 +167,38 @@ function MapView({ data, onOpen }) {
       const c = e.city || "Unknown";
       (m[c] = m[c] || []).push(e);
     });
-    return Object.entries(m).sort((a, b) => b[1].length - a[1].length);
+    return Object.entries(m)
+      .map(([city, items]) => [
+        city,
+        [...items].sort((a, b) => totalOf(b.scores) - totalOf(a.scores)),
+      ])
+      .sort((a, b) => b[1].length - a[1].length);
   }, [data]);
+
   if (!data.length)
     return <Empty msg="The places visited will gather here in time." />;
+
+  const pinned = data.filter(
+    (r) => typeof r.lat === "number" && typeof r.lng === "number"
+  ).length;
+
   return (
     <div>
       <p style={S.lede}>
         {byCity.length} {byCity.length === 1 ? "city" : "cities"} on record.
+        Tap a pin to open its record.
       </p>
+
+      <div style={S.mapWrap}>
+        <RestaurantMap restaurants={data} onPick={onOpen} />
+        {pinned < data.length && (
+          <p style={{ ...S.geoStatusText, marginTop: 8 }}>
+            {data.length - pinned} establishment(s) not yet pinned {"\u2014"} amend an
+            entry and tap {"\u201c"}Find on map{"\u201d"} to place it.
+          </p>
+        )}
+      </div>
+
       {byCity.map(([city, items]) => {
         const cityAvg = items.reduce((a, e) => a + totalOf(e.scores), 0) / items.length;
         return (
@@ -197,9 +208,12 @@ function MapView({ data, onOpen }) {
               <span style={S.cityAvg}>{fmt(cityAvg)} &middot; {items.length}</span>
             </div>
             <div style={S.cityRule} />
-            {items.map((e) => (
+            {items.map((e, i) => (
               <button key={e.id} onClick={() => onOpen(e)} style={S.cityItem} className="entry">
-                <span style={S.cityItemName}>{e.name}</span>
+                <span style={S.cityItemLeft}>
+                  <span style={S.cityItemRank}>{i + 1}</span>
+                  <span style={S.cityItemName}>{e.name}</span>
+                </span>
                 <ScoreBadge score={totalOf(e.scores)} small />
               </button>
             ))}
@@ -235,7 +249,7 @@ function TrendView({ data }) {
 
   return (
     <div>
-      <p style={S.lede}>Rank the ledger by any measure, and see how the table performs.</p>
+      <p style={S.lede}>Rank the ledger by any measure, and see how it all averages out.</p>
 
       <section style={S.panel}>
         <h3 style={S.panelTitle}>Rank by</h3>
@@ -265,7 +279,7 @@ function TrendView({ data }) {
       </section>
 
       <section style={S.panel}>
-        <h3 style={S.panelTitle}>The Table{"\u2019"}s Average</h3>
+        <h3 style={S.panelTitle}>Average by Category</h3>
         {catAvgs.map((c) => (
           <div key={c.key} style={S.barRow}>
             <span style={S.barLabel}>{c.label}</span>
