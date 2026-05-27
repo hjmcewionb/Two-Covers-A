@@ -4,6 +4,59 @@ import { CATEGORIES, totalOf, fmt, fmtScore, prettyDate } from "../lib/data";
 import { S } from "../lib/styles";
 import { ScoreBadge, Empty, EntryFormModal, DetailModal, RestaurantMap } from "../lib/components";
 
+// ---- Nav icons (engraved-style SVGs) ----------------------------------
+function IconVisits({ size = 22, color }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 40 40" fill="none"
+      stroke={color} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M 14 6 L 14 16 Q 14 19 17 19 L 17 34" />
+      <path d="M 17 6 L 17 16" />
+      <path d="M 20 6 L 20 16 Q 20 19 17 19" />
+      <ellipse cx="28" cy="13" rx="3.5" ry="7" />
+      <line x1="28" y1="20" x2="28" y2="34" />
+    </svg>
+  );
+}
+function IconRanking({ size = 22, color }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 40 40" fill="none"
+      stroke={color} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M 8 10 L 32 10 L 28 22 L 12 22 Z" />
+      <line x1="20" y1="22" x2="20" y2="28" />
+      <path d="M 14 32 Q 20 28 26 32 L 26 34 L 14 34 Z" />
+      <path d="M 8 10 Q 4 14 6 18 Q 10 16 10 14" />
+      <path d="M 32 10 Q 36 14 34 18 Q 30 16 30 14" />
+    </svg>
+  );
+}
+function IconPlaces({ size = 22, color }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 40 40" fill="none"
+      stroke={color} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M 6 9 L 15 6 L 25 9 L 34 6 L 34 31 L 25 34 L 15 31 L 6 34 Z" />
+      <line x1="15" y1="6" x2="15" y2="31" />
+      <line x1="25" y1="9" x2="25" y2="34" />
+      <path d="M 8 14 Q 12 16 14 14" />
+      <path d="M 17 20 Q 20 18 23 22" />
+      <path d="M 27 25 Q 30 27 32 24" />
+      <circle cx="20" cy="20" r="1.2" fill={color} stroke="none" />
+    </svg>
+  );
+}
+function IconFindings({ size = 22, color }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 40 40" fill="none"
+      stroke={color} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="6" y1="6" x2="6" y2="34" />
+      <line x1="6" y1="34" x2="34" y2="34" />
+      <rect x="10" y="24" width="4" height="10" />
+      <rect x="17" y="18" width="4" height="16" />
+      <rect x="24" y="12" width="4" height="22" />
+      <rect x="31" y="20" width="3" height="14" />
+    </svg>
+  );
+}
+
 export default function Home() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -34,6 +87,13 @@ export default function Home() {
     load();
   }
 
+  const NAV_ITEMS = [
+    { k: "list", label: "Visits", Icon: IconVisits },
+    { k: "ranks", label: "Ranking", Icon: IconRanking },
+    { k: "map", label: "Places", Icon: IconPlaces },
+    { k: "trends", label: "Findings", Icon: IconFindings },
+  ];
+
   return (
     <div style={S.app}>
       <header style={S.header}>
@@ -63,24 +123,16 @@ export default function Home() {
       </main>
 
       <nav style={S.nav}>
-        {[
-          { k: "list", label: "Visits" },
-          { k: "ranks", label: "Ranking" },
-          { k: "map", label: "Places" },
-          { k: "trends", label: "Findings" },
-        ].map(({ k, label }) => (
-          <button key={k} onClick={() => setTab(k)}
-            style={{ ...S.navBtn, ...(tab === k ? S.navActive : {}) }}>
-            <span style={{ ...S.navLabel,
-              fontWeight: tab === k ? 500 : 400,
-              fontFamily: tab === k ? "'Fraunces', serif" : undefined,
-              fontStyle: tab === k ? "italic" : undefined,
-              textTransform: tab === k ? "none" : "uppercase",
-              fontSize: tab === k ? 13 : 9 }}>
-              {label}
-            </span>
-          </button>
-        ))}
+        {NAV_ITEMS.map(({ k, label, Icon }) => {
+          const active = tab === k;
+          return (
+            <button key={k} onClick={() => setTab(k)}
+              aria-label={label}
+              style={{ ...S.navBtn, ...(active ? S.navActive : {}) }}>
+              <Icon size={active ? 26 : 22} color={active ? "#3A2C18" : "#9A8B70"} />
+            </button>
+          );
+        })}
       </nav>
 
       <button onClick={() => setFormMode("new")} style={S.fab} aria-label="Record a visit">
