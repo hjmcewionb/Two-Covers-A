@@ -29,6 +29,8 @@ export async function POST(request) {
     visit_date: body.visit_date || null,
     notes: (body.notes || "").trim(),
     scores: body.scores || {},
+    lat: typeof body.lat === "number" ? body.lat : null,
+    lng: typeof body.lng === "number" ? body.lng : null,
   };
 
   if (!entry.name || !entry.city) {
