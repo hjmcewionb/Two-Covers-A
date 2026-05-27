@@ -1,20 +1,49 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "../../../lib/data";
+import { supabaseAdmin } from "../../../../lib/data";
 
-export async function POST(request) {
+export async function PUT(request, { params }) {
   const body = await request.json().catch(() => ({}));
-  const email = (body.email || "").trim().toLowerCase();
+  const { password, ...rest } = body;
 
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return NextResponse.json({ error: "Please enter a valid email." }, { status: 400 });
+  if (password !== process.env.EDIT_PASSWORD) {
+    return NextResponse.json({ error: "Wrong password" }, { status: 401 });
+  }
+
+  const update = {
+    name: rest.name,
+    city: rest.city,
+    cuisine: rest.cuisine,
+    visit_date: rest.visit_date || null,
+    notes: rest.notes || "",
+    scores: rest.scores || {},
+    lat: typeof rest.lat === "number" ? rest.lat : null,
+    lng: typeof rest.lng === "number" ? rest.lng : null,
+  };
+
+  const { data, error } = await supabaseAdmin()
+    .from("restaurants")
+    .update(update)
+    .eq("id", params.id)
+    .select()
+    .single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json(data);
+}
+
+export async function DELETE(request, { params }) {
+  const body = await request.json().catch(() => ({}));
+  const { password } = body;
+
+  if (password !== process.env.EDIT_PASSWORD) {
+    return NextResponse.json({ error: "Wrong password" }, { status: 401 });
   }
 
   const { error } = await supabaseAdmin()
-    .from("signups")
-    .insert({ email });
+    .from("restaurants")
+    .delete()
+    .eq("id", params.id);
 
-  if (error && error.code !== "23505") {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
