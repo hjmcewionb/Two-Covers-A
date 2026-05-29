@@ -3,8 +3,6 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 const TITLE = "NARP NOTES";
-const FOOTER_LEFT = "A.E.B.";
-const FOOTER_RIGHT = "R.E.P.";
 
 const C = {
   paper: "#FBF6EA",
@@ -54,30 +52,38 @@ export default function Landing() {
 
       <div style={S.center}>
         <div style={S.brand}>
-          {titleChars.map(({ ch, i }) => (
-            <span key={i} style={{
+          {titleChars.map(({ ch, i }) => {
+            const isDoor = i === 2; // R of NARP
+            const base = {
               ...S.charBase,
               ...(ch === " " ? S.charSpace : {}),
-            }}>
-              {ch === " " ? "\u00a0" : ch}
-            </span>
-          ))}
+            };
+            if (isDoor) {
+              return (
+                <span
+                  key={i}
+                  onClick={onDoorClick}
+                  style={base}
+                  className="door"
+                  role="link"
+                  aria-label="Enter"
+                >
+                  {ch}
+                </span>
+              );
+            }
+            return (
+              <span key={i} style={base}>
+                {ch === " " ? "\u00a0" : ch}
+              </span>
+            );
+          })}
           {!titleCaretGone && <span style={S.caret} className="caret" />}
         </div>
       </div>
 
       <footer style={{ ...S.footer, opacity: footerOn ? 1 : 0 }}>
-        <span>{FOOTER_LEFT}</span>
-        <span
-          onClick={onDoorClick}
-          className="door"
-          role="link"
-          aria-label="Enter"
-          style={S.doorBullet}
-        >
-          {"\u00a0\u00b7\u00a0"}
-        </span>
-        <span>{FOOTER_RIGHT}</span>
+        AB&nbsp;&nbsp;RP
       </footer>
     </div>
   );
@@ -91,7 +97,7 @@ input:focus { outline: none; }
 @keyframes blink { 50% { opacity: 0; } }
 .caret { animation: blink 0.7s steps(2) infinite; }
 .door { cursor: pointer; transition: color 0.15s ease-out, transform 0.15s ease-out; display: inline-block; }
-.door:active { color: #A8743C; transform: scale(1.2); }
+.door:active { color: #A8743C; transform: scale(1.08); }
 `;
 
 const S = {
@@ -145,8 +151,5 @@ const S = {
     letterSpacing: 1,
     paddingTop: 20,
     transition: "opacity 1.6s ease-out",
-  },
-  doorBullet: {
-    color: C.accent,
   },
 };
