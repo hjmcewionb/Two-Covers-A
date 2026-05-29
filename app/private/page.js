@@ -175,7 +175,7 @@ export default function Private() {
         <div style={S.mastRule} />
         <div style={S.masthead}>NARP NOTES</div>
         <div style={S.mastRule} />
-        <div style={S.initials}>A.E.B. &nbsp;&middot;&nbsp; R.E.P.</div>
+        <div style={S.initials}>AB &nbsp;&nbsp; RP</div>
       </header>
 
       <main style={S.main}>
