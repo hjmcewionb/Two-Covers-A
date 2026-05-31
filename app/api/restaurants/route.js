@@ -26,6 +26,7 @@ export async function POST(request) {
     visit_date: rest.visit_date || null,
     notes: rest.notes || "",
     scores: rest.scores || {},
+    chosen_by: rest.chosen_by || null,
     lat: typeof rest.lat === "number" ? rest.lat : null,
     lng: typeof rest.lng === "number" ? rest.lng : null,
   };
