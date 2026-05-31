@@ -2,8 +2,12 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { CATEGORIES, totalOf, fmt, fmtScore, prettyDate } from "../../lib/data";
 import { S } from "../../lib/styles";
-import { ScoreBadge, Empty, EntryFormModal, DetailModal, RestaurantMap } from "../../lib/components";
+import {
+  ScoreBadge, Empty, EntryFormModal, DetailModal, RestaurantMap,
+  WishlistFormModal, WishlistDetailModal,
+} from "../../lib/components";
 
+// ---- Nav icons ----
 function IconVisits({ size = 22, color }) {
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" fill="none"
@@ -42,6 +46,15 @@ function IconPlaces({ size = 22, color }) {
     </svg>
   );
 }
+function IconWishlist({ size = 22, color }) {
+  // Bookmark / flag shape
+  return (
+    <svg width={size} height={size} viewBox="0 0 40 40" fill="none"
+      stroke={color} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M 12 5 L 28 5 L 28 35 L 20 28 L 12 35 Z" />
+    </svg>
+  );
+}
 function IconFindings({ size = 22, color }) {
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" fill="none"
@@ -56,6 +69,7 @@ function IconFindings({ size = 22, color }) {
   );
 }
 
+// ---- Password gate ----
 function PasswordGate({ onUnlocked }) {
   const [pw, setPw] = useState("");
   const [err, setErr] = useState("");
@@ -63,8 +77,7 @@ function PasswordGate({ onUnlocked }) {
 
   async function submit(e) {
     e.preventDefault();
-    setBusy(true);
-    setErr("");
+    setBusy(true); setErr("");
     try {
       const res = await fetch("/api/auth", {
         method: "POST",
@@ -74,13 +87,11 @@ function PasswordGate({ onUnlocked }) {
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
         setErr(j.error || "Wrong password.");
-        setBusy(false);
-        return;
+        setBusy(false); return;
       }
       onUnlocked();
     } catch {
-      setErr("Couldn't reach the server.");
-      setBusy(false);
+      setErr("Couldn't reach the server."); setBusy(false);
     }
   }
 
@@ -118,22 +129,31 @@ const gateS = {
     fontSize: 13, color: "#A5443A", marginTop: 12 },
 };
 
+// ---- Main app (gated) ----
 export default function Private() {
   const [authed, setAuthed] = useState(null);
   const [data, setData] = useState([]);
+  const [wishlist, setWishlist] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("list");
   const [detail, setDetail] = useState(null);
+  const [wishDetail, setWishDetail] = useState(null);
   const [formMode, setFormMode] = useState(null);
+  const [wishFormOpen, setWishFormOpen] = useState(false);
 
   async function load() {
     setLoading(true);
     try {
-      const res = await fetch("/api/restaurants");
-      const json = await res.json();
-      setData(Array.isArray(json) ? json : []);
+      const [resR, resW] = await Promise.all([
+        fetch("/api/restaurants"),
+        fetch("/api/wishlist"),
+      ]);
+      const r = await resR.json();
+      const w = await resW.json();
+      setData(Array.isArray(r) ? r : []);
+      setWishlist(Array.isArray(w) ? w : []);
     } catch {
-      setData([]);
+      setData([]); setWishlist([]);
     }
     setLoading(false);
   }
@@ -145,20 +165,19 @@ export default function Private() {
     }
   }, []);
 
-  useEffect(() => {
-    if (authed) load();
-  }, [authed]);
+  useEffect(() => { if (authed) load(); }, [authed]);
 
   if (authed === null) return null;
   if (!authed) return <PasswordGate onUnlocked={() => setAuthed(true)} />;
 
   const TABS = {
-    list: "The Visits", ranks: "The Ranking", map: "The Places", trends: "The Findings",
+    list: "The Visits", ranks: "The Ranking", map: "The Places",
+    wish: "The Wishlist", trends: "The Findings",
   };
 
   function afterSave() {
-    setFormMode(null);
-    setDetail(null);
+    setFormMode(null); setDetail(null);
+    setWishFormOpen(false); setWishDetail(null);
     load();
   }
 
@@ -166,8 +185,14 @@ export default function Private() {
     { k: "list", label: "Visits", Icon: IconVisits },
     { k: "ranks", label: "Ranking", Icon: IconRanking },
     { k: "map", label: "Places", Icon: IconPlaces },
+    { k: "wish", label: "Wishlist", Icon: IconWishlist },
     { k: "trends", label: "Findings", Icon: IconFindings },
   ];
+
+  function onFabClick() {
+    if (tab === "wish") setWishFormOpen(true);
+    else setFormMode("new");
+  }
 
   return (
     <div style={S.app}>
@@ -192,6 +217,7 @@ export default function Private() {
             {tab === "list" && <ListView data={data} onOpen={setDetail} />}
             {tab === "ranks" && <RankView data={data} onOpen={setDetail} />}
             {tab === "map" && <MapView data={data} onOpen={setDetail} />}
+            {tab === "wish" && <WishlistView data={wishlist} onOpen={setWishDetail} />}
             {tab === "trends" && <TrendView data={data} />}
           </>
         )}
@@ -209,7 +235,8 @@ export default function Private() {
         })}
       </nav>
 
-      <button onClick={() => setFormMode("new")} style={S.fab} aria-label="Record a visit">
+      <button onClick={onFabClick} style={S.fab}
+        aria-label={tab === "wish" ? "Add to wishlist" : "Record a visit"}>
         <span style={{ fontSize: 26, lineHeight: 1 }}>+</span>
       </button>
 
@@ -223,6 +250,18 @@ export default function Private() {
       {detail && (
         <DetailModal entry={detail} onClose={() => setDetail(null)}
           onEdit={(e) => { setDetail(null); setFormMode(e); }}
+          onDeleted={afterSave} />
+      )}
+      {wishFormOpen && (
+        <WishlistFormModal
+          onClose={() => setWishFormOpen(false)}
+          onSaved={afterSave}
+        />
+      )}
+      {wishDetail && (
+        <WishlistDetailModal entry={wishDetail}
+          onClose={() => setWishDetail(null)}
+          onConverted={afterSave}
           onDeleted={afterSave} />
       )}
     </div>
@@ -311,7 +350,6 @@ function MapView({ data, onOpen }) {
         {byCity.length} {byCity.length === 1 ? "city" : "cities"} on record.
         Tap a pin to open its record.
       </p>
-
       <div style={S.mapWrap}>
         <RestaurantMap restaurants={data} onPick={onOpen} />
         {pinned < data.length && (
@@ -321,7 +359,6 @@ function MapView({ data, onOpen }) {
           </p>
         )}
       </div>
-
       {byCity.map(([city, items]) => {
         const cityAvg = items.reduce((a, e) => a + totalOf(e.scores), 0) / items.length;
         return (
@@ -347,6 +384,41 @@ function MapView({ data, onOpen }) {
   );
 }
 
+function WishlistView({ data, onOpen }) {
+  if (!data.length)
+    return <Empty msg="The wishlist is empty. Tap the + button to add somewhere you want to try." />;
+  const sorted = [...data].sort((a, b) =>
+    (b.created_at || "").localeCompare(a.created_at || ""));
+  return (
+    <div>
+      <p style={S.lede}>
+        {data.length} {data.length === 1 ? "place" : "places"} we want to try.
+      </p>
+      {sorted.map((e, i) => (
+        <button key={e.id} onClick={() => onOpen(e)} style={S.card} className="entry">
+          <div style={S.cardTop}>
+            <span style={S.cardNo}>{String(i + 1).padStart(2, "0")}</span>
+            <span style={S.cardRule} />
+            {e.suggested_by && (
+              <span style={S.cardDate}>
+                via {e.suggested_by === "Both" ? "both" : e.suggested_by}
+              </span>
+            )}
+          </div>
+          <div style={S.cardBody}>
+            <div style={S.cardLeft}>
+              <div style={S.cardName}>{e.name}</div>
+              <div style={S.cardMeta}>
+                {e.city}{e.cuisine ? ` \u2014 ${e.cuisine}` : ""}
+              </div>
+            </div>
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function TrendView({ data }) {
   if (!data.length)
     return <Empty msg="Findings emerge once there's something to study." />;
@@ -354,6 +426,7 @@ function TrendView({ data }) {
     <div>
       <p style={S.lede}>The record, read closely.</p>
       <RecordsSection data={data} />
+      <PickerSection data={data} />
       <CategorySection data={data} />
       <ScatterSection data={data} />
       <TimeSection data={data} />
@@ -397,6 +470,93 @@ function RecordsSection({ data }) {
           </div>
         ))}
       </div>
+    </section>
+  );
+}
+
+function PickerSection({ data }) {
+  // Group by chosen_by. Use Both as its own bucket and a 'joint' contribution.
+  const ab = data.filter((e) => e.chosen_by === "AB");
+  const rp = data.filter((e) => e.chosen_by === "RP");
+  const both = data.filter((e) => e.chosen_by === "Both");
+  const tagged = ab.length + rp.length + both.length;
+
+  if (tagged === 0) {
+    return (
+      <section style={S.panel}>
+        <h3 style={S.panelTitle}>By Picker</h3>
+        <p style={S.subtleNote}>
+          No visits tagged yet. Amend any entry and set {"\u201c"}Who chose{"\u201d"}
+          {" "}to start comparing.
+        </p>
+      </section>
+    );
+  }
+
+  function avg(arr) {
+    if (!arr.length) return 0;
+    return arr.reduce((a, e) => a + totalOf(e.scores), 0) / arr.length;
+  }
+
+  const stats = [
+    { label: "AB picks", n: ab.length, avg: avg(ab) },
+    { label: "RP picks", n: rp.length, avg: avg(rp) },
+    { label: "Joint", n: both.length, avg: avg(both) },
+  ];
+
+  // Category-level breakdown
+  const catBreak = CATEGORIES.map((c) => {
+    const abVals = ab.map((e) => e.scores?.[c.key]).filter((v) => typeof v === "number");
+    const rpVals = rp.map((e) => e.scores?.[c.key]).filter((v) => typeof v === "number");
+    return {
+      label: c.label,
+      ab: abVals.length ? abVals.reduce((a, b) => a + b, 0) / abVals.length : null,
+      rp: rpVals.length ? rpVals.reduce((a, b) => a + b, 0) / rpVals.length : null,
+    };
+  });
+
+  return (
+    <section style={S.panel}>
+      <h3 style={S.panelTitle}>By Picker</h3>
+      <p style={S.subtleNote}>
+        How the picks score, depending on who chose. Based on {tagged} tagged{" "}
+        {tagged === 1 ? "visit" : "visits"}.
+      </p>
+
+      <div style={S.statGrid}>
+        {stats.map((s, i) => (
+          <div key={i} style={S.statCard}>
+            <div style={S.statLabel}>{s.label}</div>
+            <div style={S.statValue}>{s.n ? fmt(s.avg) : "\u2014"}</div>
+            <div style={S.statSub}>{s.n} {s.n === 1 ? "visit" : "visits"}</div>
+          </div>
+        ))}
+      </div>
+
+      {(ab.length > 0 && rp.length > 0) && (
+        <div style={{ marginTop: 18 }}>
+          <div style={S.subPanelTitle}>By category</div>
+          <div style={{ display: "flex", justifyContent: "space-between",
+            fontSize: 10, color: "#6E5C42", marginBottom: 8,
+            fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase" }}>
+            <span>Category</span>
+            <span>AB &nbsp; &middot; &nbsp; RP</span>
+          </div>
+          {catBreak.map((c) => (
+            <div key={c.label} style={S.barRow}>
+              <span style={S.barLabel}>{c.label}</span>
+              <span style={{ ...S.barVal, minWidth: 40,
+                color: c.ab === null ? "#A8987C" : "#3A2C18" }}>
+                {c.ab === null ? "\u2014" : fmt(c.ab)}
+              </span>
+              <span style={{ ...S.barVal, minWidth: 40,
+                color: c.rp === null ? "#A8987C" : "#3A2C18" }}>
+                {c.rp === null ? "\u2014" : fmt(c.rp)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -526,7 +686,6 @@ function ScatterSection({ data }) {
   const size = 260, pad = 32;
   const scale = (v) => pad + ((v - 0) / 10) * (size - 2 * pad);
   const yScale = (v) => size - pad - ((v - 0) / 10) * (size - 2 * pad);
-
   return (
     <section style={S.panel}>
       <h3 style={S.panelTitle}>Category Against Category</h3>
