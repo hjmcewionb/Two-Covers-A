@@ -7,7 +7,6 @@ import {
   WishlistFormModal, WishlistDetailModal,
 } from "../../lib/components";
 
-// ---- Nav icons ----
 function IconVisits({ size = 22, color }) {
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" fill="none"
@@ -47,7 +46,6 @@ function IconPlaces({ size = 22, color }) {
   );
 }
 function IconWishlist({ size = 22, color }) {
-  // Bookmark / flag shape
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" fill="none"
       stroke={color} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
@@ -69,7 +67,6 @@ function IconFindings({ size = 22, color }) {
   );
 }
 
-// ---- Password gate ----
 function PasswordGate({ onUnlocked }) {
   const [pw, setPw] = useState("");
   const [err, setErr] = useState("");
@@ -129,7 +126,6 @@ const gateS = {
     fontSize: 13, color: "#A5443A", marginTop: 12 },
 };
 
-// ---- Main app (gated) ----
 export default function Private() {
   const [authed, setAuthed] = useState(null);
   const [data, setData] = useState([]);
@@ -475,7 +471,6 @@ function RecordsSection({ data }) {
 }
 
 function PickerSection({ data }) {
-  // Group by chosen_by. Use Both as its own bucket and a 'joint' contribution.
   const ab = data.filter((e) => e.chosen_by === "AB");
   const rp = data.filter((e) => e.chosen_by === "RP");
   const both = data.filter((e) => e.chosen_by === "Both");
@@ -504,7 +499,6 @@ function PickerSection({ data }) {
     { label: "Joint", n: both.length, avg: avg(both) },
   ];
 
-  // Category-level breakdown
   const catBreak = CATEGORIES.map((c) => {
     const abVals = ab.map((e) => e.scores?.[c.key]).filter((v) => typeof v === "number");
     const rpVals = rp.map((e) => e.scores?.[c.key]).filter((v) => typeof v === "number");
@@ -536,20 +530,21 @@ function PickerSection({ data }) {
       {(ab.length > 0 && rp.length > 0) && (
         <div style={{ marginTop: 18 }}>
           <div style={S.subPanelTitle}>By category</div>
-          <div style={{ display: "flex", justifyContent: "space-between",
+          <div style={{ display: "flex", alignItems: "center",
             fontSize: 10, color: "#6E5C42", marginBottom: 8,
             fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase" }}>
-            <span>Category</span>
-            <span>AB &nbsp; &middot; &nbsp; RP</span>
+            <span style={{ ...S.barLabel, color: "#6E5C42" }}>Category</span>
+            <span style={{ minWidth: 40, textAlign: "right" }}>AB</span>
+            <span style={{ minWidth: 40, textAlign: "right" }}>RP</span>
           </div>
           {catBreak.map((c) => (
             <div key={c.label} style={S.barRow}>
               <span style={S.barLabel}>{c.label}</span>
-              <span style={{ ...S.barVal, minWidth: 40,
+              <span style={{ ...S.barVal, minWidth: 40, textAlign: "right",
                 color: c.ab === null ? "#A8987C" : "#3A2C18" }}>
                 {c.ab === null ? "\u2014" : fmt(c.ab)}
               </span>
-              <span style={{ ...S.barVal, minWidth: 40,
+              <span style={{ ...S.barVal, minWidth: 40, textAlign: "right",
                 color: c.rp === null ? "#A8987C" : "#3A2C18" }}>
                 {c.rp === null ? "\u2014" : fmt(c.rp)}
               </span>
