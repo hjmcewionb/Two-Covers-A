@@ -424,7 +424,6 @@ function TrendView({ data }) {
       <RecordsSection data={data} />
       <PickerSection data={data} />
       <CategorySection data={data} />
-      <ScatterSection data={data} />
       <TimeSection data={data} />
       <LeagueSection data={data} />
     </div>
